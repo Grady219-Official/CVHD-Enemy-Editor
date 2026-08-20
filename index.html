@@ -1,0 +1,741 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Harmony of Despair Enemy Editor</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1000px;
+      margin: 30px auto;
+      padding: 0 20px;
+      background: #f7f7f7;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    select,
+    input,
+    button {
+      padding: 7px;
+      font-size: 14px;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    #editor {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    .field {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 10px;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+
+    .field label {
+      font-weight: bold;
+    }
+
+    .section {
+      border: 1px solid #bbb;
+      padding: 12px;
+      margin: 15px 0;
+      border-radius: 6px;
+      background: #fafafa;
+    }
+
+    .section h3 {
+      margin-top: 0;
+      margin-bottom: 12px;
+    }
+
+    input {
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    #status {
+      margin-top: 10px;
+      font-size: 13px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Harmony of Despair Enemy Editor</h1>
+
+  <div class="toolbar">
+
+    <input
+      type="file"
+      id="fileInput"
+      accept=".json"
+    >
+
+    <label>
+      Enemy:
+      <select id="enemySelect">
+        <option>Load JSON first</option>
+      </select>
+    </label>
+
+    <button
+      id="applyButton"
+      disabled
+    >
+      Apply Changes
+    </button>
+
+    <button
+      id="downloadButton"
+      disabled
+    >
+      Download Modified JSON
+    </button>
+
+  </div>
+
+  <div id="editor">
+    Load your enemy JSON file to begin.
+  </div>
+
+  <div id="status"></div>
+
+
+<script>
+
+let data = null;
+let currentEnemyIndex = -1;
+
+
+// ------------------------------------------------------------
+// Elements
+// ------------------------------------------------------------
+
+const fileInput =
+  document.getElementById("fileInput");
+
+const enemySelect =
+  document.getElementById("enemySelect");
+
+const editor =
+  document.getElementById("editor");
+
+const applyButton =
+  document.getElementById("applyButton");
+
+const downloadButton =
+  document.getElementById("downloadButton");
+
+const status =
+  document.getElementById("status");
+
+
+// ------------------------------------------------------------
+// Events
+// ------------------------------------------------------------
+
+fileInput.addEventListener(
+  "change",
+  loadFile
+);
+
+enemySelect.addEventListener(
+  "change",
+  selectEnemy
+);
+
+applyButton.addEventListener(
+  "click",
+  function() {
+
+    saveCurrentFields();
+
+    status.textContent =
+      "Changes applied to the current enemy.";
+
+  }
+);
+
+downloadButton.addEventListener(
+  "click",
+  downloadJSON
+);
+
+
+// ------------------------------------------------------------
+// Load JSON
+// ------------------------------------------------------------
+
+function loadFile(event) {
+
+  const file =
+    event.target.files[0];
+
+  if (!file) {
+    return;
+  }
+
+  const reader =
+    new FileReader();
+
+
+  reader.onload = function(e) {
+
+    try {
+
+      data =
+        JSON.parse(e.target.result);
+
+
+      if (
+        !data.enemy_section ||
+        !Array.isArray(data.enemy_section)
+      ) {
+
+        throw new Error(
+          "JSON does not contain an enemy_section array."
+        );
+
+      }
+
+
+      populateEnemyList();
+
+
+      if (
+        data.enemy_section.length > 0
+      ) {
+
+        currentEnemyIndex = 0;
+
+        enemySelect.value =
+          String(currentEnemyIndex);
+
+        renderEnemy();
+
+      }
+
+
+      applyButton.disabled =
+        false;
+
+      downloadButton.disabled =
+        false;
+
+
+      status.textContent =
+        `Loaded ${data.enemy_section.length} enemies.`;
+
+    }
+
+    catch (err) {
+
+      alert(
+        "Could not load JSON:\n\n" +
+        err.message
+      );
+
+    }
+
+  };
+
+
+  reader.readAsText(file);
+
+}
+
+
+// ------------------------------------------------------------
+// Build enemy dropdown
+// ------------------------------------------------------------
+
+function populateEnemyList() {
+
+  enemySelect.innerHTML = "";
+
+
+  data.enemy_section.forEach(
+    function(enemy, index) {
+
+      const option =
+        document.createElement("option");
+
+
+      option.value =
+        String(index);
+
+
+      option.textContent =
+        enemy.name ||
+        `Enemy ${index + 1}`;
+
+
+      enemySelect.appendChild(
+        option
+      );
+
+    }
+  );
+
+}
+
+
+// ------------------------------------------------------------
+// Switch enemies
+// ------------------------------------------------------------
+
+function selectEnemy() {
+
+  // IMPORTANT:
+  // capture the newly selected enemy first
+  // before saving the previous one
+
+  const newIndex =
+    Number(enemySelect.value);
+
+
+  // Save changes from the old enemy
+
+  saveCurrentFields();
+
+
+  // Now switch to the new enemy
+
+  currentEnemyIndex =
+    newIndex;
+
+
+  enemySelect.value =
+    String(currentEnemyIndex);
+
+
+  renderEnemy();
+
+
+  const enemy =
+    data.enemy_section[currentEnemyIndex];
+
+
+  status.textContent =
+    `Selected: ${enemy.name}`;
+
+}
+
+
+// ------------------------------------------------------------
+// Render selected enemy
+// ------------------------------------------------------------
+
+function renderEnemy() {
+
+  editor.innerHTML = "";
+
+
+  if (
+    !data ||
+    currentEnemyIndex < 0
+  ) {
+
+    return;
+
+  }
+
+
+  const enemy =
+    data.enemy_section[currentEnemyIndex];
+
+
+  if (!enemy) {
+    return;
+  }
+
+
+  Object.entries(enemy).forEach(
+    function([key, value]) {
+
+
+      if (
+        typeof value === "object" &&
+        value !== null &&
+        !Array.isArray(value)
+      ) {
+
+        renderObjectSection(
+          key,
+          value
+        );
+
+      }
+
+      else {
+
+        renderField(
+          key,
+          value
+        );
+
+      }
+
+    }
+  );
+
+}
+
+
+// ------------------------------------------------------------
+// Render normal field
+// ------------------------------------------------------------
+
+function renderField(
+  key,
+  value
+) {
+
+  const row =
+    document.createElement("div");
+
+  row.className =
+    "field";
+
+
+  const label =
+    document.createElement("label");
+
+  label.textContent =
+    key;
+
+
+  const input =
+    document.createElement("input");
+
+
+  input.value =
+    value;
+
+
+  input.dataset.key =
+    key;
+
+
+  input.dataset.type =
+    typeof value;
+
+
+  row.appendChild(
+    label
+  );
+
+  row.appendChild(
+    input
+  );
+
+
+  editor.appendChild(
+    row
+  );
+
+}
+
+
+// ------------------------------------------------------------
+// Render nested object
+// ------------------------------------------------------------
+
+function renderObjectSection(
+  sectionName,
+  objectValue
+) {
+
+  const section =
+    document.createElement("div");
+
+  section.className =
+    "section";
+
+
+  const heading =
+    document.createElement("h3");
+
+  heading.textContent =
+    sectionName;
+
+
+  section.appendChild(
+    heading
+  );
+
+
+  Object.entries(
+    objectValue
+  ).forEach(
+    function([key, value]) {
+
+      const row =
+        document.createElement("div");
+
+      row.className =
+        "field";
+
+
+      const label =
+        document.createElement("label");
+
+      label.textContent =
+        key;
+
+
+      const input =
+        document.createElement("input");
+
+
+      input.value =
+        value;
+
+
+      input.dataset.section =
+        sectionName;
+
+
+      input.dataset.key =
+        key;
+
+
+      input.dataset.type =
+        typeof value;
+
+
+      row.appendChild(
+        label
+      );
+
+      row.appendChild(
+        input
+      );
+
+
+      section.appendChild(
+        row
+      );
+
+    }
+  );
+
+
+  editor.appendChild(
+    section
+  );
+
+}
+
+
+// ------------------------------------------------------------
+// Save edited fields into memory
+// ------------------------------------------------------------
+
+function saveCurrentFields() {
+
+  if (
+    !data ||
+    currentEnemyIndex < 0
+  ) {
+
+    return;
+
+  }
+
+
+  const enemy =
+    data.enemy_section[currentEnemyIndex];
+
+
+  const inputs =
+    editor.querySelectorAll("input");
+
+
+  inputs.forEach(
+    function(input) {
+
+      const key =
+        input.dataset.key;
+
+
+      const section =
+        input.dataset.section;
+
+
+      const type =
+        input.dataset.type;
+
+
+      let value =
+        input.value;
+
+
+      // Convert numeric fields back to numbers
+
+      if (
+        type === "number"
+      ) {
+
+        const numericValue =
+          Number(value);
+
+
+        if (
+          Number.isNaN(numericValue)
+        ) {
+
+          alert(
+            `Invalid numeric value for ${key}: ${value}`
+          );
+
+          return;
+
+        }
+
+
+        value =
+          numericValue;
+
+      }
+
+
+      // Nested value
+
+      if (section) {
+
+        enemy[section][key] =
+          value;
+
+      }
+
+      // Normal value
+
+      else {
+
+        enemy[key] =
+          value;
+
+      }
+
+    }
+  );
+
+
+  // If the name was edited,
+  // update only the current dropdown label
+
+  if (
+    enemySelect.options[
+      currentEnemyIndex
+    ]
+  ) {
+
+    enemySelect.options[
+      currentEnemyIndex
+    ].textContent =
+      enemy.name ||
+      `Enemy ${currentEnemyIndex + 1}`;
+
+  }
+
+}
+
+
+// ------------------------------------------------------------
+// Download updated JSON
+// ------------------------------------------------------------
+
+function downloadJSON() {
+
+  saveCurrentFields();
+
+
+  const jsonText =
+    JSON.stringify(
+      data,
+      null,
+      2
+    );
+
+
+  const blob =
+    new Blob(
+      [jsonText],
+      {
+        type: "application/json"
+      }
+    );
+
+
+  const url =
+    URL.createObjectURL(
+      blob
+    );
+
+
+  const link =
+    document.createElement("a");
+
+
+  link.href =
+    url;
+
+
+  link.download =
+    "enemy_data_modified.json";
+
+
+  document.body.appendChild(
+    link
+  );
+
+
+  link.click();
+
+
+  document.body.removeChild(
+    link
+  );
+
+
+  URL.revokeObjectURL(
+    url
+  );
+
+
+  status.textContent =
+    "Modified JSON downloaded.";
+
+}
+
+</script>
+
+</body>
+</html>
