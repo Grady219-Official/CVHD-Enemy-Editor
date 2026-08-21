@@ -1,738 +1,1700 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Harmony of Despair Enemy Editor</title>
+<meta charset="utf-8">
 
-  <style>
+<title>Harmony of Despair Enemy Editor</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      max-width: 1000px;
-      margin: 30px auto;
-      padding: 0 20px;
-      background: #f7f7f7;
+        font-family: Arial, sans-serif;
+        max-width: 1050px;
+        margin: 30px auto;
+        padding: 0 20px;
+        background: #f4f4f4;
+        color: #222;
     }
 
     h1 {
-      margin-bottom: 20px;
+        margin-bottom: 5px;
+    }
+
+    .subtitle {
+        color: #666;
+        margin-top: 0;
+        margin-bottom: 20px;
     }
 
     .toolbar {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-      background: white;
-      padding: 15px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
     }
 
     select,
     input,
     button {
-      padding: 7px;
-      font-size: 14px;
+        padding: 8px;
+        font-size: 14px;
+    }
+
+    select {
+        min-width: 260px;
     }
 
     button {
-      cursor: pointer;
+        cursor: pointer;
+    }
+
+    button:disabled {
+        cursor: default;
+        opacity: 0.5;
+    }
+
+    #enemyHeader {
+        display: none;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 15px;
+    }
+
+    #enemyDisplayName {
+        margin: 0;
+        font-size: 28px;
+    }
+
+    #internalName {
+        color: #666;
+        margin-top: 5px;
+        font-family: monospace;
     }
 
     #editor {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        padding: 20px;
     }
 
     .field {
-      display: grid;
-      grid-template-columns: 220px 1fr;
-      gap: 10px;
-      margin-bottom: 8px;
-      align-items: center;
+        display: grid;
+        grid-template-columns: 220px 260px;
+        gap: 12px;
+        margin-bottom: 9px;
+        align-items: center;
     }
 
     .field label {
-      font-weight: bold;
+        font-weight: bold;
+    }
+
+    .field input,
+    .field select {
+        width: 260px;
+        max-width: 100%;
+    }
+
+    .readonly {
+        background: #eee;
+        color: #555;
     }
 
     .section {
-      border: 1px solid #bbb;
-      padding: 12px;
-      margin: 15px 0;
-      border-radius: 6px;
-      background: #fafafa;
+        border: 1px solid #bbb;
+        background: #fafafa;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 6px;
     }
 
     .section h3 {
-      margin-top: 0;
-      margin-bottom: 12px;
+        margin-top: 0;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #ddd;
     }
 
-    input {
-      width: 100%;
-      box-sizing: border-box;
+    .percentage-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .percentage-wrapper input {
+        width: 100px;
+    }
+
+    .percentage-symbol {
+        font-weight: bold;
+        color: #666;
+    }
+
+    .hex-note {
+        font-size: 12px;
+        color: #777;
+        margin-left: 232px;
+        margin-top: -4px;
+        margin-bottom: 10px;
     }
 
     #status {
-      margin-top: 10px;
-      font-size: 13px;
-      font-weight: bold;
+        margin-top: 12px;
+        font-size: 13px;
+        font-weight: bold;
     }
-  </style>
+
+    @media (max-width: 650px) {
+        body {
+            margin: 15px auto;
+            padding: 0 10px;
+        }
+
+        .field {
+            grid-template-columns: 1fr;
+            gap: 4px;
+        }
+
+        .field input,
+        .field select {
+            width: 100%;
+        }
+
+        .percentage-wrapper input {
+            width: 120px;
+        }
+
+        .hex-note {
+            margin-left: 0;
+        }
+
+        select {
+            width: 100%;
+        }
+
+        .toolbar {
+            align-items: stretch;
+            flex-direction: column;
+        }
+    }
+</style>
 </head>
 
 <body>
 
-  <h1>Harmony of Despair Enemy Editor</h1>
+<h1>Harmony of Despair Enemy Editor</h1>
 
-  <div class="toolbar">
+<p class="subtitle">
+    Enemy parameter JSON editor
+</p>
+
+<div class="toolbar">
 
     <input
-      type="file"
-      id="fileInput"
-      accept=".json"
+        type="file"
+        id="fileInput"
+        accept=".json"
     >
 
     <label>
-      Enemy:
-      <select id="enemySelect">
-        <option>Load JSON first</option>
-      </select>
+        Enemy:
+        <select id="enemySelect">
+            <option>Load JSON first</option>
+        </select>
     </label>
 
     <button
-      id="applyButton"
-      disabled
+        id="applyButton"
+        disabled
     >
-      Apply Changes
+        Apply Changes
     </button>
 
     <button
-      id="downloadButton"
-      disabled
+        id="downloadButton"
+        disabled
     >
-      Download Modified JSON
+        Download Modified JSON
     </button>
 
-  </div>
+</div>
 
-  <div id="editor">
+<div id="enemyHeader">
+    <h2 id="enemyDisplayName">Enemy</h2>
+    <div id="internalName"></div>
+</div>
+
+<div id="editor">
     Load your enemy JSON file to begin.
-  </div>
+</div>
 
-  <div id="status"></div>
+<div id="status"></div>
 
 
 <script>
+
+/*
+==============================================================
+FRIENDLY ENEMY NAMES
+==============================================================
+*/
+
+const enemyDisplayNames = {
+    "zombi": "Zombie",
+    "armc02": "Bat",
+    "ya_skl": "Skeleton",
+    "sf_bor": "Ghost",
+    "axe_am": "Axe Knight",
+    "eye": "Peeping Eye",
+    "amala": "Amalaric Sniper",
+    "nirus": "Fleaman",
+    "fm68": "Merman",
+    "boosk": "Spittle Bone",
+    "honeb": "Bone Pillar",
+    "minoHD": "Minotaur",
+    "sf_une": "Une",
+    "syoku": "Man-eating Plant",
+    "matan0": "Moldy Corpse",
+    "ent": "Treant",
+    "pros": "Persephone",
+    "oferia": "Frozen Shade",
+    "fu_he": "Ectoplasm",
+    "imp": "Imp",
+    "wdrag": "White Dragon",
+    "maze": "Allorumnas",
+    "succ": "Yorick",
+    "grasha": "Glasya Labolas",
+    "cyupa": "Cave Troll",
+    "medusa": "Medusa Head",
+    "majo": "Witch",
+    "sakyu": "Succubus",
+    "frdm": "Fire Demon",
+    "buer": "Buer",
+    "snip0": "Lerajie",
+    "troop": "Gurkha Master",
+    "frank": "The Creature",
+    "dula00": "Dullahan",
+    "harpy": "Harpy",
+    "fu_sg": "Skeleton Gunman",
+    "disk00": "Disc Armor",
+    "sedm": "Sea Demon",
+    "mimi00": "Mimic",
+    "halfh": "Dead Warrior",
+    "YA_SK7": "Nova Skeleton",
+    "thdm": "Thunder Demon",
+    "spec00": "Specter",
+    "evil": "Malachi",
+    "final": "Final Guard",
+    "fafni": "Gergoth",
+    "puppet": "Puppet Master",
+    "last": "Menace",
+    "brau": "Brauner",
+    "death": "Death",
+    "x1dr00": "Dracula",
+    "x1dr01": "Dracula 2",
+    "DRA3": "Dracula 3",
+    "xldr00": "Dracula"
+};
+
+
+/*
+==============================================================
+ITEM GROUP CATEGORIES
+==============================================================
+*/
+
+const itemGroupCategories = {
+    0:  "00 - None / Empty",
+    1:  "01 - Money",
+    2:  "02 - Heart?",
+    3:  "03 - Weapons (Weaponset)",
+    4:  "04 - Armor (Guardset)",
+    5:  "05 - Subweapon (subweaponset)",
+    6:  "06 - Soul Drops (soulset)",
+    7:  "07 - Alucard Spells (darkmagicset)",
+    8:  "08 - Charlotte Spells (learningset)",
+    9:  "09 - Glyph? (glyphset)",
+    10: "0A - Yoko spells?",
+    11: "0B - Maria spells (beast4set)",
+    12: "0C - Martial Arts (martialartset)",
+    13: "0D - Consumable (useset)",
+    14: "0E - Stage item",
+    15: "0F - Personal skills",
+    16: "10 - Water of life?"
+};
+
+
+/*
+==============================================================
+WEAPON MAP
+
+Keys are the numeric values that remain in JSON.
+Labels show the hexadecimal ID and weapon name.
+==============================================================
+*/
+
+const weaponNames = {
+    0x00: "Death Scythe",
+    0x01: "Golden Axe",
+    0x02: "Great Axe",
+    0x03: "Bhuj",
+    0x04: "Battle Axe",
+    0x05: "Axe",
+    0x06: "Muramasa",
+    0x07: "Yasutsuna",
+    0x08: "Osafune",
+    0x09: "Kunitsuna",
+    0x0A: "Masamune",
+    0x0B: "Kotetsu",
+    0x0C: "Katana",
+    0x0D: "Blunt Sword",
+    0x0E: "Red Rust",
+    0x0F: "Takemitsu",
+    0x10: "Confodere",
+    0x11: "Alucard Sword",
+    0x12: "Valmanway",
+    0x13: "Kaladbolg",
+    0x14: "Badelaire",
+    0x15: "Sword Familiar",
+    0x16: "Burtgang",
+    0x17: "Mystletain",
+    0x18: "Fragarach",
+    0x19: "Gram",
+    0x1A: "Ice Brand",
+    0x1B: "Laevatain",
+    0x1C: "Mablung Sword",
+    0x1D: "Joyeuse",
+    0x1E: "Hrunting",
+    0x1F: "Agni's Flame",
+    0x20: "Indra's Light",
+    0x21: "Holy Sword",
+    0x22: "Mormegil",
+    0x23: "Rahab's Frost",
+    0x24: "Harper",
+    0x25: "Vorpal Blade",
+    0x26: "Sword of Hador",
+    0x27: "Talwar",
+    0x28: "Jagdplaute",
+    0x29: "Bastard Sword",
+    0x2A: "Damascus Sword",
+    0x2B: "Bekatowa",
+    0x2C: "Broadsword",
+    0x2D: "Saber",
+    0x2E: "Cutlass",
+    0x2F: "Scimitar",
+    0x30: "Gladius",
+    0x31: "Long Sword",
+    0x32: "Alucart Sword",
+    0x33: "Milican's Sword",
+    0x34: "Short Sword",
+    0x35: "Tyrfing",
+    0x36: "Mach Punch",
+    0x37: "Fist of Tulkas",
+    0x38: "Whip Knuckle",
+    0x39: "Kaiser Knuckle",
+    0x3A: "Jewel Knuckles",
+    0x3B: "Cestus",
+    0x3C: "Blue Knuckles",
+    0x3D: "Brass Knuckles",
+    0x3E: "Knuckle Dusters",
+    0x3F: "Mjollnjr",
+    0x40: "Morning Star",
+    0x41: "Moon Rod",
+    0x42: "Holy Rod",
+    0x43: "Star Flail",
+    0x44: "Shield Rod",
+    0x45: "Mace",
+    0x46: "Silver Gun",
+    0x47: "Throwing Sickle",
+    0x48: "RPG",
+    0x49: "Chakram",
+    0x4A: "Handgun",
+    0x4B: "Tomahawk",
+    0x4C: "Boomerang",
+    0x4D: "Nebula",
+    0x4E: "Garian Sword",
+    0x4F: "Whip Sword",
+    0x50: "Claimh Solais",
+    0x51: "Final Sword",
+    0x52: "Balmung",
+    0x53: "Ascalon",
+    0x54: "Dainslef",
+    0x55: "Durandal",
+    0x56: "Great Sword",
+    0x57: "Daybreak",
+    0x58: "Obsidian Sword",
+    0x59: "Terror Bear",
+    0x5A: "Zweihander",
+    0x5B: "Flamberge",
+    0x5C: "Claymore",
+    0x5D: "Falchion",
+    0x5E: "Alucard Shield",
+    0x5F: "Herald Shield",
+    0x60: "Goddess Shield",
+    0x61: "Shaman Shield",
+    0x62: "Skull Shield",
+    0x63: "Axe Knight Shield",
+    0x64: "Dark Shield",
+    0x65: "Fire Shield",
+    0x66: "Iron Shield",
+    0x67: "Knight Shield",
+    0x68: "Medusa Shield",
+    0x69: "Leather Shield",
+    0x6A: "Alucart Shield",
+    0x6B: "Cinquedea",
+    0x6C: "Shotel",
+    0x6D: "Were Bane",
+    0x6E: "Cutall",
+    0x6F: "Jewel Sword",
+    0x70: "Combat Knife",
+    0x71: "Holbein Dagger",
+    0x72: "Baselard",
+    0x73: "Knife",
+    0x74: "Belnades Staff",
+    0x75: "Tonfa",
+    0x76: "Nunchakus",
+    0x77: "Doves",
+    0x78: "Kris Naga",
+    0x79: "Estoc",
+    0x7A: "Small Sword",
+    0x7B: "Main Gauche",
+    0x7C: "Fleuret",
+    0x7D: "Rapier",
+    0x7E: "Heaven's Sword",
+    0x7F: "Bare Knuckles",
+    0x80: "Book of Binding",
+    0x81: "Vampire Killer",
+    0x82: "Gungner",
+    0x83: "Longinus",
+    0x84: "Geiborg",
+    0x85: "Brionac",
+    0x86: "Trident",
+    0x87: "Lance",
+    0x88: "Halberd",
+    0x89: "Partisan",
+    0x8A: "Spear",
+    0x8B: "Lapiste",
+    0x8C: "Pneuma"
+};
+
+
+/*
+==============================================================
+UNKNOWN FIELDS
+==============================================================
+*/
+
+function isHiddenField(key) {
+    const normalized = key.toLowerCase();
+
+    return (
+        normalized.includes("unknown") ||
+        normalized.includes("unkown")
+    );
+}
+
+
+/*
+==============================================================
+DROP CHANCE SCALE
+
+25 internally = 2.5% in the editor.
+==============================================================
+*/
+
+const dropChanceScale = 10;
+
+
+/*
+==============================================================
+PROGRAM DATA
+==============================================================
+*/
 
 let data = null;
 let currentEnemyIndex = -1;
 
 
-// ------------------------------------------------------------
-// Elements
-// ------------------------------------------------------------
+/*
+==============================================================
+ELEMENTS
+==============================================================
+*/
 
-const fileInput =
-  document.getElementById("fileInput");
-
-const enemySelect =
-  document.getElementById("enemySelect");
-
-const editor =
-  document.getElementById("editor");
-
-const applyButton =
-  document.getElementById("applyButton");
-
-const downloadButton =
-  document.getElementById("downloadButton");
-
-const status =
-  document.getElementById("status");
+const fileInput = document.getElementById("fileInput");
+const enemySelect = document.getElementById("enemySelect");
+const editor = document.getElementById("editor");
+const applyButton = document.getElementById("applyButton");
+const downloadButton = document.getElementById("downloadButton");
+const status = document.getElementById("status");
+const enemyHeader = document.getElementById("enemyHeader");
+const enemyDisplayName = document.getElementById("enemyDisplayName");
+const internalName = document.getElementById("internalName");
 
 
-// ------------------------------------------------------------
-// Events
-// ------------------------------------------------------------
+/*
+==============================================================
+EVENTS
+==============================================================
+*/
 
-fileInput.addEventListener(
-  "change",
-  loadFile
-);
+fileInput.addEventListener("change", loadFile);
+enemySelect.addEventListener("change", selectEnemy);
 
-enemySelect.addEventListener(
-  "change",
-  selectEnemy
-);
+applyButton.addEventListener("click", function() {
+    if (saveCurrentFields()) {
+        status.textContent = "Changes applied.";
+    }
+});
 
-applyButton.addEventListener(
-  "click",
-  function() {
-
-    saveCurrentFields();
-
-    status.textContent =
-      "Changes applied to the current enemy.";
-
-  }
-);
-
-downloadButton.addEventListener(
-  "click",
-  downloadJSON
-);
+downloadButton.addEventListener("click", downloadJSON);
 
 
-// ------------------------------------------------------------
-// Load JSON
-// ------------------------------------------------------------
+/*
+==============================================================
+LOAD JSON
+==============================================================
+*/
 
 function loadFile(event) {
 
-  const file =
-    event.target.files[0];
+    const file = event.target.files[0];
 
-  if (!file) {
-    return;
-  }
-
-  const reader =
-    new FileReader();
-
-
-  reader.onload = function(e) {
-
-    try {
-
-      data =
-        JSON.parse(e.target.result);
-
-
-      if (
-        !data.enemy_section ||
-        !Array.isArray(data.enemy_section)
-      ) {
-
-        throw new Error(
-          "JSON does not contain an enemy_section array."
-        );
-
-      }
-
-
-      populateEnemyList();
-
-
-      if (
-        data.enemy_section.length > 0
-      ) {
-
-        currentEnemyIndex = 0;
-
-        enemySelect.value =
-          String(currentEnemyIndex);
-
-        renderEnemy();
-
-      }
-
-
-      applyButton.disabled =
-        false;
-
-      downloadButton.disabled =
-        false;
-
-
-      status.textContent =
-        `Loaded ${data.enemy_section.length} enemies.`;
-
+    if (!file) {
+        return;
     }
 
-    catch (err) {
+    const reader = new FileReader();
 
-      alert(
-        "Could not load JSON:\n\n" +
-        err.message
-      );
+    reader.onload = function(e) {
 
-    }
+        try {
 
-  };
+            data = JSON.parse(e.target.result);
 
+            if (
+                !data.enemy_section ||
+                !Array.isArray(data.enemy_section)
+            ) {
+                throw new Error(
+                    "JSON does not contain an enemy_section array."
+                );
+            }
 
-  reader.readAsText(file);
+            populateEnemyList();
 
-}
+            if (data.enemy_section.length > 0) {
+                currentEnemyIndex = 0;
+                enemySelect.value = "0";
+                renderEnemy();
+            }
 
+            applyButton.disabled = false;
+            downloadButton.disabled = false;
 
-// ------------------------------------------------------------
-// Build enemy dropdown
-// ------------------------------------------------------------
-
-function populateEnemyList() {
-
-  enemySelect.innerHTML = "";
-
-
-  data.enemy_section.forEach(
-    function(enemy, index) {
-
-      const option =
-        document.createElement("option");
-
-
-      option.value =
-        String(index);
-
-
-      option.textContent =
-        enemy.name ||
-        `Enemy ${index + 1}`;
-
-
-      enemySelect.appendChild(
-        option
-      );
-
-    }
-  );
-
-}
-
-
-// ------------------------------------------------------------
-// Switch enemies
-// ------------------------------------------------------------
-
-function selectEnemy() {
-
-  // IMPORTANT:
-  // capture the newly selected enemy first
-  // before saving the previous one
-
-  const newIndex =
-    Number(enemySelect.value);
-
-
-  // Save changes from the old enemy
-
-  saveCurrentFields();
-
-
-  // Now switch to the new enemy
-
-  currentEnemyIndex =
-    newIndex;
-
-
-  enemySelect.value =
-    String(currentEnemyIndex);
-
-
-  renderEnemy();
-
-
-  const enemy =
-    data.enemy_section[currentEnemyIndex];
-
-
-  status.textContent =
-    `Selected: ${enemy.name}`;
-
-}
-
-
-// ------------------------------------------------------------
-// Render selected enemy
-// ------------------------------------------------------------
-
-function renderEnemy() {
-
-  editor.innerHTML = "";
-
-
-  if (
-    !data ||
-    currentEnemyIndex < 0
-  ) {
-
-    return;
-
-  }
-
-
-  const enemy =
-    data.enemy_section[currentEnemyIndex];
-
-
-  if (!enemy) {
-    return;
-  }
-
-
-  Object.entries(enemy).forEach(
-    function([key, value]) {
-
-
-      if (
-        typeof value === "object" &&
-        value !== null &&
-        !Array.isArray(value)
-      ) {
-
-        renderObjectSection(
-          key,
-          value
-        );
-
-      }
-
-      else {
-
-        renderField(
-          key,
-          value
-        );
-
-      }
-
-    }
-  );
-
-}
-
-
-// ------------------------------------------------------------
-// Render normal field
-// ------------------------------------------------------------
-
-function renderField(
-  key,
-  value
-) {
-
-  const row =
-    document.createElement("div");
-
-  row.className =
-    "field";
-
-
-  const label =
-    document.createElement("label");
-
-  label.textContent =
-    key;
-
-
-  const input =
-    document.createElement("input");
-
-
-  input.value =
-    value;
-
-
-  input.dataset.key =
-    key;
-
-
-  input.dataset.type =
-    typeof value;
-
-
-  row.appendChild(
-    label
-  );
-
-  row.appendChild(
-    input
-  );
-
-
-  editor.appendChild(
-    row
-  );
-
-}
-
-
-// ------------------------------------------------------------
-// Render nested object
-// ------------------------------------------------------------
-
-function renderObjectSection(
-  sectionName,
-  objectValue
-) {
-
-  const section =
-    document.createElement("div");
-
-  section.className =
-    "section";
-
-
-  const heading =
-    document.createElement("h3");
-
-  heading.textContent =
-    sectionName;
-
-
-  section.appendChild(
-    heading
-  );
-
-
-  Object.entries(
-    objectValue
-  ).forEach(
-    function([key, value]) {
-
-      const row =
-        document.createElement("div");
-
-      row.className =
-        "field";
-
-
-      const label =
-        document.createElement("label");
-
-      label.textContent =
-        key;
-
-
-      const input =
-        document.createElement("input");
-
-
-      input.value =
-        value;
-
-
-      input.dataset.section =
-        sectionName;
-
-
-      input.dataset.key =
-        key;
-
-
-      input.dataset.type =
-        typeof value;
-
-
-      row.appendChild(
-        label
-      );
-
-      row.appendChild(
-        input
-      );
-
-
-      section.appendChild(
-        row
-      );
-
-    }
-  );
-
-
-  editor.appendChild(
-    section
-  );
-
-}
-
-
-// ------------------------------------------------------------
-// Save edited fields into memory
-// ------------------------------------------------------------
-
-function saveCurrentFields() {
-
-  if (
-    !data ||
-    currentEnemyIndex < 0
-  ) {
-
-    return;
-
-  }
-
-
-  const enemy =
-    data.enemy_section[currentEnemyIndex];
-
-
-  const inputs =
-    editor.querySelectorAll("input");
-
-
-  inputs.forEach(
-    function(input) {
-
-      const key =
-        input.dataset.key;
-
-
-      const section =
-        input.dataset.section;
-
-
-      const type =
-        input.dataset.type;
-
-
-      let value =
-        input.value;
-
-
-      // Convert numeric fields back to numbers
-
-      if (
-        type === "number"
-      ) {
-
-        const numericValue =
-          Number(value);
-
-
-        if (
-          Number.isNaN(numericValue)
-        ) {
-
-          alert(
-            `Invalid numeric value for ${key}: ${value}`
-          );
-
-          return;
+            status.textContent =
+                "Loaded " +
+                data.enemy_section.length +
+                " enemies.";
 
         }
 
+        catch (error) {
 
-        value =
-          numericValue;
+            alert(
+                "Could not load JSON:\n\n" +
+                error.message
+            );
 
-      }
+        }
 
+    };
 
-      // Nested value
-
-      if (section) {
-
-        enemy[section][key] =
-          value;
-
-      }
-
-      // Normal value
-
-      else {
-
-        enemy[key] =
-          value;
-
-      }
-
-    }
-  );
-
-
-  // If the name was edited,
-  // update only the current dropdown label
-
-  if (
-    enemySelect.options[
-      currentEnemyIndex
-    ]
-  ) {
-
-    enemySelect.options[
-      currentEnemyIndex
-    ].textContent =
-      enemy.name ||
-      `Enemy ${currentEnemyIndex + 1}`;
-
-  }
-
+    reader.readAsText(file);
 }
 
 
-// ------------------------------------------------------------
-// Download updated JSON
-// ------------------------------------------------------------
+/*
+==============================================================
+DISPLAY NAME
+==============================================================
+*/
+
+function getDisplayName(enemy) {
+
+    if (!enemy) {
+        return "Unknown Enemy";
+    }
+
+    const internal = enemy.name || "";
+
+    return (
+        enemyDisplayNames[internal] ||
+        internal ||
+        "Unknown Enemy"
+    );
+}
+
+
+/*
+==============================================================
+ENEMY DROPDOWN
+==============================================================
+*/
+
+function populateEnemyList() {
+
+    enemySelect.innerHTML = "";
+
+    data.enemy_section.forEach(
+        function(enemy, index) {
+
+            const option =
+                document.createElement("option");
+
+            option.value = String(index);
+
+            const internal =
+                enemy.name ||
+                `Enemy ${index + 1}`;
+
+            const display =
+                enemyDisplayNames[internal];
+
+            option.textContent =
+                display
+                    ? `${display} (${internal})`
+                    : internal;
+
+            enemySelect.appendChild(option);
+        }
+    );
+}
+
+
+/*
+==============================================================
+SWITCH ENEMY
+==============================================================
+*/
+
+function selectEnemy() {
+
+    const newIndex =
+        Number(enemySelect.value);
+
+    if (currentEnemyIndex >= 0) {
+
+        if (!saveCurrentFields()) {
+
+            enemySelect.value =
+                String(currentEnemyIndex);
+
+            return;
+        }
+    }
+
+    currentEnemyIndex = newIndex;
+
+    enemySelect.value =
+        String(currentEnemyIndex);
+
+    renderEnemy();
+
+    status.textContent =
+        "Selected: " +
+        getDisplayName(
+            data.enemy_section[currentEnemyIndex]
+        );
+}
+
+
+/*
+==============================================================
+RENDER ENEMY
+==============================================================
+*/
+
+function renderEnemy() {
+
+    editor.innerHTML = "";
+
+    if (
+        !data ||
+        currentEnemyIndex < 0
+    ) {
+        return;
+    }
+
+    const enemy =
+        data.enemy_section[currentEnemyIndex];
+
+    if (!enemy) {
+        return;
+    }
+
+    updateEnemyHeader();
+
+    /*
+    Internal name.
+    */
+
+    renderField(
+        "name",
+        enemy.name
+    );
+
+
+    /*
+    Compendium fields grouped visually.
+    */
+
+    renderCompendiumSection(enemy);
+
+
+    /*
+    Everything else.
+    */
+
+    Object.entries(enemy).forEach(
+        function([key, value]) {
+
+            if (
+                key === "name" ||
+                key === "compendium_picture" ||
+                key === "compendium_name" ||
+                key === "compendium_number"
+            ) {
+                return;
+            }
+
+            if (isHiddenField(key)) {
+                return;
+            }
+
+            if (
+                key === "item1_drop_chance" ||
+                key === "item2_drop_chance" ||
+                key === "soul_drop_chance"
+            ) {
+                return;
+            }
+
+            if (
+                typeof value === "object" &&
+                value !== null &&
+                !Array.isArray(value)
+            ) {
+
+                renderObjectSection(
+                    key,
+                    value,
+                    enemy
+                );
+
+            }
+
+            else {
+
+                renderField(
+                    key,
+                    value
+                );
+
+            }
+
+        }
+    );
+}
+
+
+/*
+==============================================================
+HEADER
+==============================================================
+*/
+
+function updateEnemyHeader() {
+
+    const enemy =
+        data.enemy_section[currentEnemyIndex];
+
+    enemyHeader.style.display = "block";
+
+    enemyDisplayName.textContent =
+        getDisplayName(enemy);
+
+    internalName.textContent =
+        "Internal name: " +
+        enemy.name;
+}
+
+
+/*
+==============================================================
+NORMAL FIELD
+==============================================================
+*/
+
+function renderField(
+    key,
+    value,
+    customLabel = null
+) {
+
+    if (isHiddenField(key)) {
+        return;
+    }
+
+    const row =
+        document.createElement("div");
+
+    row.className = "field";
+
+    const label =
+        document.createElement("label");
+
+    label.textContent =
+        customLabel || key;
+
+    const input =
+        document.createElement("input");
+
+    input.value = value;
+    input.dataset.key = key;
+    input.dataset.type = typeof value;
+
+    if (key === "name") {
+        input.readOnly = true;
+        input.classList.add("readonly");
+    }
+
+    row.appendChild(label);
+    row.appendChild(input);
+    editor.appendChild(row);
+}
+
+
+/*
+==============================================================
+COMPENDIUM
+==============================================================
+*/
+
+function renderCompendiumSection(enemy) {
+
+    const section =
+        document.createElement("div");
+
+    section.className = "section";
+
+    const heading =
+        document.createElement("h3");
+
+    heading.textContent =
+        "Compendium";
+
+    section.appendChild(heading);
+
+    if (
+        Object.prototype.hasOwnProperty.call(
+            enemy,
+            "compendium_picture"
+        )
+    ) {
+        renderTopLevelFieldIntoSection(
+            section,
+            "compendium_picture",
+            enemy.compendium_picture,
+            "Picture"
+        );
+    }
+
+    if (
+        Object.prototype.hasOwnProperty.call(
+            enemy,
+            "compendium_name"
+        )
+    ) {
+        renderTopLevelFieldIntoSection(
+            section,
+            "compendium_name",
+            enemy.compendium_name,
+            "Name"
+        );
+    }
+
+    if (
+        Object.prototype.hasOwnProperty.call(
+            enemy,
+            "compendium_number"
+        )
+    ) {
+        renderTopLevelFieldIntoSection(
+            section,
+            "compendium_number",
+            enemy.compendium_number,
+            "Number"
+        );
+    }
+
+    editor.appendChild(section);
+}
+
+
+function renderTopLevelFieldIntoSection(
+    section,
+    key,
+    value,
+    labelText
+) {
+
+    const row =
+        document.createElement("div");
+
+    row.className = "field";
+
+    const label =
+        document.createElement("label");
+
+    label.textContent = labelText;
+
+    const input =
+        document.createElement("input");
+
+    input.value = value;
+    input.dataset.key = key;
+    input.dataset.type = typeof value;
+
+    row.appendChild(label);
+    row.appendChild(input);
+    section.appendChild(row);
+}
+
+
+/*
+==============================================================
+ITEM GROUP
+==============================================================
+*/
+
+function renderItemGroupField(
+    section,
+    sectionName,
+    key,
+    value
+) {
+
+    const row =
+        document.createElement("div");
+
+    row.className = "field";
+
+    const label =
+        document.createElement("label");
+
+    label.textContent =
+        "Item Category";
+
+    const select =
+        document.createElement("select");
+
+    select.dataset.section = sectionName;
+    select.dataset.key = key;
+    select.dataset.type = "number";
+
+    Object.entries(
+        itemGroupCategories
+    ).forEach(
+        function([number, description]) {
+
+            const option =
+                document.createElement("option");
+
+            option.value =
+                String(number);
+
+            option.textContent =
+                description;
+
+            select.appendChild(option);
+        }
+    );
+
+    if (
+        !Object.prototype.hasOwnProperty.call(
+            itemGroupCategories,
+            value
+        )
+    ) {
+
+        const option =
+            document.createElement("option");
+
+        option.value =
+            String(value);
+
+        option.textContent =
+            `${value} - Unknown category`;
+
+        select.appendChild(option);
+    }
+
+    select.value =
+        String(value);
+
+
+    /*
+    When category changes, save everything
+    and immediately redraw the enemy.
+
+    This changes Item Number between:
+      normal numeric input
+      weapon dropdown
+    */
+
+    select.addEventListener(
+        "change",
+        function() {
+
+            if (saveCurrentFields()) {
+
+                renderEnemy();
+
+                status.textContent =
+                    "Item category changed.";
+
+            }
+        }
+    );
+
+
+    row.appendChild(label);
+    row.appendChild(select);
+    section.appendChild(row);
+}
+
+
+/*
+==============================================================
+ITEM NUMBER
+
+Only Weapons / group 03 gets a weapon dropdown.
+Everything else remains numeric.
+==============================================================
+*/
+
+function renderItemNumberField(
+    section,
+    sectionName,
+    value,
+    itemGroup
+) {
+
+    const row =
+        document.createElement("div");
+
+    row.className = "field";
+
+    const label =
+        document.createElement("label");
+
+    label.textContent =
+        "Item Number";
+
+
+    /*
+    Weapon category = group 3.
+    */
+
+    if (
+        Number(itemGroup) === 3
+    ) {
+
+        const select =
+            document.createElement("select");
+
+        select.dataset.section =
+            sectionName;
+
+        select.dataset.key =
+            "item_number";
+
+        select.dataset.type =
+            "number";
+
+
+        Object.entries(
+            weaponNames
+        ).forEach(
+            function([number, weaponName]) {
+
+                const numericValue =
+                    Number(number);
+
+                const hexValue =
+                    numericValue
+                        .toString(16)
+                        .toUpperCase()
+                        .padStart(2, "0");
+
+                const option =
+                    document.createElement("option");
+
+                option.value =
+                    String(numericValue);
+
+                option.textContent =
+                    `${hexValue} - ${weaponName}`;
+
+                select.appendChild(option);
+            }
+        );
+
+
+        /*
+        Preserve IDs not yet included
+        in our weapon map.
+        */
+
+        if (
+            !Object.prototype.hasOwnProperty.call(
+                weaponNames,
+                value
+            )
+        ) {
+
+            const hexValue =
+                Number(value)
+                    .toString(16)
+                    .toUpperCase()
+                    .padStart(2, "0");
+
+            const option =
+                document.createElement("option");
+
+            option.value =
+                String(value);
+
+            option.textContent =
+                `${hexValue} - Unknown Weapon`;
+
+            select.appendChild(option);
+        }
+
+
+        select.value =
+            String(value);
+
+
+        row.appendChild(label);
+        row.appendChild(select);
+        section.appendChild(row);
+
+
+        const note =
+            document.createElement("div");
+
+        note.className =
+            "hex-note";
+
+        note.textContent =
+            "Weapon name is display-only; the numeric item ID is preserved internally.";
+
+        section.appendChild(note);
+
+    }
+
+    else {
+
+        const input =
+            document.createElement("input");
+
+        input.value = value;
+
+        input.dataset.section =
+            sectionName;
+
+        input.dataset.key =
+            "item_number";
+
+        input.dataset.type =
+            typeof value;
+
+        row.appendChild(label);
+        row.appendChild(input);
+        section.appendChild(row);
+    }
+}
+
+
+/*
+==============================================================
+DROP CHANCE
+==============================================================
+*/
+
+function renderDropChanceField(
+    section,
+    jsonKey,
+    internalValue
+) {
+
+    const row =
+        document.createElement("div");
+
+    row.className = "field";
+
+    const label =
+        document.createElement("label");
+
+    label.textContent =
+        "Drop Chance";
+
+    const wrapper =
+        document.createElement("div");
+
+    wrapper.className =
+        "percentage-wrapper";
+
+    const input =
+        document.createElement("input");
+
+    input.type = "number";
+    input.step = "0.1";
+    input.min = "0";
+
+    input.value =
+        (
+            Number(internalValue) /
+            dropChanceScale
+        ).toFixed(1);
+
+    input.dataset.key =
+        jsonKey;
+
+    input.dataset.type =
+        "percentage";
+
+    const symbol =
+        document.createElement("span");
+
+    symbol.className =
+        "percentage-symbol";
+
+    symbol.textContent = "%";
+
+    wrapper.appendChild(input);
+    wrapper.appendChild(symbol);
+
+    row.appendChild(label);
+    row.appendChild(wrapper);
+
+    section.appendChild(row);
+}
+
+
+/*
+==============================================================
+NESTED SECTIONS
+==============================================================
+*/
+
+function renderObjectSection(
+    sectionName,
+    objectValue,
+    enemy
+) {
+
+    const visibleEntries =
+        Object.entries(objectValue)
+            .filter(
+                function([key]) {
+                    return !isHiddenField(key);
+                }
+            );
+
+    if (
+        visibleEntries.length === 0
+    ) {
+        return;
+    }
+
+    const section =
+        document.createElement("div");
+
+    section.className =
+        "section";
+
+    const heading =
+        document.createElement("h3");
+
+
+    if (
+        sectionName === "floor_item1"
+    ) {
+        heading.textContent =
+            "Item Drop 1";
+    }
+
+    else if (
+        sectionName === "floor_item2"
+    ) {
+        heading.textContent =
+            "Item Drop 2";
+    }
+
+    else if (
+        sectionName === "soul_drop"
+    ) {
+        heading.textContent =
+            "Soul Drop";
+    }
+
+    else {
+        heading.textContent =
+            sectionName;
+    }
+
+
+    section.appendChild(heading);
+
+
+    /*
+    For item sections we control the rendering
+    order explicitly:
+        Category
+        Item Number
+        Drop Chance
+    */
+
+    if (
+        sectionName === "floor_item1" ||
+        sectionName === "floor_item2" ||
+        sectionName === "soul_drop"
+    ) {
+
+        if (
+            Object.prototype.hasOwnProperty.call(
+                objectValue,
+                "item_group"
+            )
+        ) {
+
+            renderItemGroupField(
+                section,
+                sectionName,
+                "item_group",
+                objectValue.item_group
+            );
+        }
+
+
+        if (
+            Object.prototype.hasOwnProperty.call(
+                objectValue,
+                "item_number"
+            )
+        ) {
+
+            renderItemNumberField(
+                section,
+                sectionName,
+                objectValue.item_number,
+                objectValue.item_group
+            );
+        }
+
+
+        if (
+            sectionName === "floor_item1" &&
+            Object.prototype.hasOwnProperty.call(
+                enemy,
+                "item1_drop_chance"
+            )
+        ) {
+
+            renderDropChanceField(
+                section,
+                "item1_drop_chance",
+                enemy.item1_drop_chance
+            );
+        }
+
+
+        if (
+            sectionName === "floor_item2" &&
+            Object.prototype.hasOwnProperty.call(
+                enemy,
+                "item2_drop_chance"
+            )
+        ) {
+
+            renderDropChanceField(
+                section,
+                "item2_drop_chance",
+                enemy.item2_drop_chance
+            );
+        }
+
+
+        if (
+            sectionName === "soul_drop" &&
+            Object.prototype.hasOwnProperty.call(
+                enemy,
+                "soul_drop_chance"
+            )
+        ) {
+
+            renderDropChanceField(
+                section,
+                "soul_drop_chance",
+                enemy.soul_drop_chance
+            );
+        }
+
+    }
+
+    else {
+
+        /*
+        Non-item nested objects such as
+        damage_resistance.
+        */
+
+        visibleEntries.forEach(
+            function([key, value]) {
+
+                const row =
+                    document.createElement("div");
+
+                row.className =
+                    "field";
+
+                const label =
+                    document.createElement("label");
+
+                label.textContent =
+                    key;
+
+                const input =
+                    document.createElement("input");
+
+                input.value =
+                    value;
+
+                input.dataset.section =
+                    sectionName;
+
+                input.dataset.key =
+                    key;
+
+                input.dataset.type =
+                    typeof value;
+
+                row.appendChild(label);
+                row.appendChild(input);
+
+                section.appendChild(row);
+            }
+        );
+    }
+
+
+    editor.appendChild(section);
+}
+
+
+/*
+==============================================================
+SAVE CURRENT VALUES
+==============================================================
+*/
+
+function saveCurrentFields() {
+
+    if (
+        !data ||
+        currentEnemyIndex < 0
+    ) {
+        return true;
+    }
+
+    const enemy =
+        data.enemy_section[
+            currentEnemyIndex
+        ];
+
+    const fields =
+        editor.querySelectorAll(
+            "input, select"
+        );
+
+
+    /*
+    Validation.
+    */
+
+    for (
+        const field of fields
+    ) {
+
+        const type =
+            field.dataset.type;
+
+        if (
+            type === "number" ||
+            type === "percentage"
+        ) {
+
+            if (
+                Number.isNaN(
+                    Number(field.value)
+                )
+            ) {
+
+                alert(
+                    "Invalid numeric value for " +
+                    field.dataset.key
+                );
+
+                field.focus();
+
+                return false;
+            }
+        }
+    }
+
+
+    /*
+    Save values.
+    */
+
+    fields.forEach(
+        function(field) {
+
+            const key =
+                field.dataset.key;
+
+            const section =
+                field.dataset.section;
+
+            const type =
+                field.dataset.type;
+
+            let value =
+                field.value;
+
+
+            if (
+                type === "percentage"
+            ) {
+
+                value =
+                    Math.round(
+                        Number(value) *
+                        dropChanceScale
+                    );
+
+            }
+
+            else if (
+                type === "number"
+            ) {
+
+                value =
+                    Number(value);
+            }
+
+
+            if (section) {
+
+                enemy[
+                    section
+                ][
+                    key
+                ] = value;
+
+            }
+
+            else {
+
+                enemy[
+                    key
+                ] = value;
+            }
+
+        }
+    );
+
+
+    return true;
+}
+
+
+/*
+==============================================================
+DOWNLOAD JSON
+==============================================================
+*/
 
 function downloadJSON() {
 
-  saveCurrentFields();
+    if (!data) {
+        return;
+    }
 
+    if (!saveCurrentFields()) {
+        return;
+    }
 
-  const jsonText =
-    JSON.stringify(
-      data,
-      null,
-      2
-    );
+    const jsonText =
+        JSON.stringify(
+            data,
+            null,
+            2
+        );
 
+    const blob =
+        new Blob(
+            [jsonText],
+            {
+                type:
+                    "application/json"
+            }
+        );
 
-  const blob =
-    new Blob(
-      [jsonText],
-      {
-        type: "application/json"
-      }
-    );
+    const url =
+        URL.createObjectURL(blob);
 
+    const link =
+        document.createElement("a");
 
-  const url =
-    URL.createObjectURL(
-      blob
-    );
+    link.href = url;
 
+    link.download =
+        "enemy_data_modified.json";
 
-  const link =
-    document.createElement("a");
+    document.body.appendChild(link);
 
+    link.click();
 
-  link.href =
-    url;
+    document.body.removeChild(link);
 
+    URL.revokeObjectURL(url);
 
-  link.download =
-    "enemy_data_modified.json";
-
-
-  document.body.appendChild(
-    link
-  );
-
-
-  link.click();
-
-
-  document.body.removeChild(
-    link
-  );
-
-
-  URL.revokeObjectURL(
-    url
-  );
-
-
-  status.textContent =
-    "Modified JSON downloaded.";
-
+    status.textContent =
+        "Modified JSON downloaded.";
 }
 
 </script>
